@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <title>OpenCode Pet</title>
+    <link rel="stylesheet" href="/src/style.css" />
+  </head>
+  <body>
+    <div class="bubble-area">
+      <div id="bubble" class="bubble hidden"></div>
+      <div id="choices" class="choices hidden"></div>
+      <button id="news-more" class="news-more hidden">📰 详细</button>
+    </div>
+    <canvas id="view"></canvas>
+
+    <div id="composer" class="composer hidden">
+      <input id="prompt" placeholder="对宠物说点什么…（Enter 发送）" />
+      <button id="send" title="发送">➤</button>
+      <button id="composer-close" title="关闭">✕</button>
+    </div>
+
+    <div id="settings" class="settings hidden">      <button id="settings-close" class="settings-close" title="关闭">✕</button>
+      <div class="settings-title">设置 <span class="build">v2026.10.29</span></div>
+      <label>
+        <span>来源</span>
+        <div class="dd" id="dd-mode"></div>
+      </label>
+      <label>
+        <span>对话模型</span>
+        <div class="dd" id="dd-model"></div>
+      </label>
+      <label>
+        <span>声音</span>
+        <div class="dd" id="dd-voice"></div>
+      </label>
+      <label>
+        <span>语速</span>
+        <div class="dd" id="dd-rate"></div>
+      </label>
+      <label>
+        <span>音调</span>
+        <div class="dd" id="dd-pitch"></div>
+      </label>
+      <label>
+        <span>主动聊天</span>
+        <div class="dd" id="dd-talk"></div>
+      </label>
+      <div class="settings-actions">
+        <button id="settings-models">📁 模型文件夹</button>
+        <button id="settings-importAnim">📥 导入动作</button>
+      </div>
+      <div id="settings-hint" class="hint"></div>
+    </div>
+
+    <div id="news-detail" class="news-detail hidden">
+      <div class="news-head">
+        <span id="news-title">新闻详情</span>
+        <button id="news-close" title="关闭">✕</button>
+      </div>
+      <div id="news-list"></div>
+    </div>
+
+    <div id="menu" class="context-menu hidden">
+      <button class="menu-close" data-action="closeMenu" title="关闭">✕</button>
+      <button data-action="compose">💬 输入消息</button>
+      <button data-action="song">🎵 点歌</button>
+      <button data-action="clickThrough">🖱 点击穿透：关</button>
+      <button data-action="talk">💬 主动聊天：经常</button>
+      <button data-action="voice">📢 朗读上一条</button>
+      <button data-action="voiceNext">📢 朗读下一条</button>
+      <button data-action="mute">🔇 静音</button>
+      <div class="menu-group">
+        <button data-action="switchModel">🧍 换模型</button>
+        <div id="model-list" class="menu-sub hidden"></div>
+      </div>
+      <div class="menu-group">
+        <button data-action="switchAnim">🎬 动作</button>
+        <div id="anim-list" class="menu-sub hidden"></div>
+      </div>
+      <button data-action="dance">💃 跳舞</button>
+      <button data-action="sing">🎤 唱歌</button>
+      <div class="sep"></div>
+      <button data-action="settings">⚙ 设置</button>
+      <button data-action="quit">✕ 退出</button>
+    </div>
+
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>

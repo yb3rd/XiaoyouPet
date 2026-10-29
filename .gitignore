@@ -1,0 +1,35 @@
+# dependencies / build output
+node_modules/
+dist/
+src-tauri/target/
+src-tauri/gen/
+src-tauri/.cargo/
+src-tauri/cargo-*.log
+*.log
+
+# personal models / actions / music / memories
+models/*.vrm
+animations/*.vrma
+!animations/idle-maid.vrma
+!animations/idle-sitting.vrma
+!animations/grabbed.vrma
+mp3/*.mp3
+music_cache/
+memory/*.json
+
+# default model is tracked; other VRMs are not
+public/*.vrm
+!public/sample.vrm
+
+# secrets
+.env
+.env.*
+service.json
+auth.json
+*.pem
+
+# editor / OS
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/

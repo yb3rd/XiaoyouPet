@@ -1,0 +1,22 @@
+{
+  "name": "opencode-pet-tauri",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "build:debug": "cargo build --manifest-path src-tauri/Cargo.toml --features custom-protocol",
+    "tauri": "tauri"
+  },
+  "dependencies": {
+    "@pixiv/three-vrm": "^3.5.5",
+    "@pixiv/three-vrm-animation": "^3.5.5",
+    "@tauri-apps/api": "^2.12.4",
+    "three": "^0.186.0"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2.12.4",
+    "vite": "^7.0.0"
+  }
+}
