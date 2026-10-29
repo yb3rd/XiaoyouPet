@@ -1,4 +1,4 @@
-# OpenCode Pet
+# 小尤桌宠（XiaoyouPet）
 
 一个独立运行的 VRM 桌面宠物：透明置顶、点击穿透、聊天、语音、新闻、在线点歌、长期记忆，还会主动找你说话。
 
@@ -24,7 +24,7 @@
 - Windows 10/11
 - Node.js 20+
 - Rust stable + Visual Studio Build Tools（Windows）
-- 本地 OpenCode 服务（聊天用；Tauri 版默认读取本机 `~/.local/state/opencode/service.json`）
+- 本地 OpenCode 服务（聊天推理用；Tauri 版默认读取本机 `~/.local/state/opencode/service.json`。这是后端依赖，不是项目品牌；要完全脱离可改直连模型 API）
 - Python + `edge-tts`（可选，语音用；没有时回退系统语音）
 
 ```bash
@@ -48,7 +48,7 @@ npm run tauri build
 
 ```bash
 npm run build:debug
-# 产物：src-tauri/target/debug/opencode-pet-tauri.exe
+# 产物：src-tauri/target/debug/xiaoyou-pet.exe
 ```
 
 > Release 打包如果遇到本机 rustc 的 `core` rlib 元数据问题，可先用 `build:debug` 产物；换一个 Rust stable 工具链后 `npm run tauri build` 即可。

@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "OpenCode Pet",
+  "productName": "XiaoyouPet",
   "version": "0.1.0",
-  "identifier": "com.opencode.pet",
+  "identifier": "com.yb3rd.xiaoyoupet",
   "build": {
     "beforeDevCommand": "npm run dev",
     "devUrl": "http://localhost:1420",
@@ -13,7 +13,7 @@
     "windows": [
       {
         "label": "main",
-        "title": "OpenCode Pet",
+        "title": "小尤桌宠",
         "width": 300,
         "height": 340,
         "transparent": true,

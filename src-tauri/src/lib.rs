@@ -902,7 +902,7 @@ async fn speak(text: String, voice: String, rate: String, pitch: String) -> serd
         .duration_since(UNIX_EPOCH)
         .map(|value| value.as_millis())
         .unwrap_or_default();
-    let file = std::env::temp_dir().join(format!("opencode-pet-{millis}.mp3"));
+    let file = std::env::temp_dir().join(format!("xiaoyou-pet-{millis}.mp3"));
 
     let mut command = tokio::process::Command::new("python");
     command.args([
@@ -1225,7 +1225,7 @@ pub fn run() {
             let quit_item = MenuItem::with_id(app, "quit", "退出", true, None::<&str>)?;
             let tray_menu = Menu::with_items(app, &[&click_item, &quit_item])?;
             let mut tray = TrayIconBuilder::new()
-                .tooltip("OpenCode Pet v2026.10.29")
+                .tooltip("小尤桌宠 v2026.10.29")
                 .menu(&tray_menu)
                 .show_menu_on_left_click(true)
                 .on_menu_event(move |app, event| match event.id.as_ref() {

@@ -1336,7 +1336,7 @@ function toggleVoice() {
 
 function testVoice() {
   if (dancing) stopDance(false, false)
-  const text = lastText || "你好，我是 OpenCode 桌面宠物，语音测试正常。"
+  const text = lastText || "你好，我是小尤桌宠，语音测试正常。"
   showBubble(text)
   speak(text, true)
 }

@@ -1,5 +1,6 @@
 {
-  "name": "opencode-pet-tauri",
+  "name": "xiaoyou-pet",
+  "description": "XiaoyouPet - a standalone VRM desktop pet built with Tauri v2",
   "private": true,
   "version": "0.1.0",
   "type": "module",
