@@ -893,10 +893,98 @@ async fn topic(kind: String) -> serde_json::Value {
 }
 
 #[tauri::command]
-async fn speak(text: String, voice: String, rate: String, pitch: String) -> serde_json::Value {
+fn has_piper_voice(app: AppHandle) -> bool {
+    let root = asset_root(&app).join("voices").join("piper");
+    root.join("piper").join("piper.exe").is_file()
+        && root.join("zh_CN-huayan-medium.onnx").is_file()
+}
+
+fn rate_to_length_scale(rate: &str) -> f64 {
+    let value = rate
+        .trim()
+        .trim_end_matches('%')
+        .parse::<f64>()
+        .unwrap_or(0.0);
+    (1.0 / (1.0 + value / 100.0)).clamp(0.5, 2.0)
+}
+
+async fn speak_piper(app: &AppHandle, text: &str, rate: &str) -> serde_json::Value {
+    let root = asset_root(app).join("voices").join("piper");
+    let exe = root.join("piper").join("piper.exe");
+    let model = root.join("zh_CN-huayan-medium.onnx");
+    if !exe.is_file() || !model.is_file() {
+        return json!({ "ok": false, "error": "piper voice not installed" });
+    }
+    let millis = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|value| value.as_millis())
+        .unwrap_or_default();
+    let file = std::env::temp_dir().join(format!("xiaoyou-piper-{millis}.wav"));
+    let mut command = tokio::process::Command::new(&exe);
+    command
+        .arg("--model")
+        .arg(&model)
+        .arg("--output_file")
+        .arg(&file)
+        .arg("--length_scale")
+        .arg(format!("{:.3}", rate_to_length_scale(rate)))
+        .arg("--espeak_data")
+        .arg(root.join("piper").join("espeak-ng-data"))
+        .current_dir(root.join("piper"))
+        .stdin(std::process::Stdio::piped())
+        .stdout(std::process::Stdio::null())
+        .stderr(std::process::Stdio::piped());
+    #[cfg(windows)]
+    command.creation_flags(0x08000000);
+
+    let mut child = match command.spawn() {
+        Ok(child) => child,
+        Err(error) => return json!({ "ok": false, "error": error.to_string() }),
+    };
+    if let Some(mut stdin) = child.stdin.take() {
+        use tokio::io::AsyncWriteExt;
+        if let Err(error) = stdin.write_all(text.as_bytes()).await {
+            let _ = child.kill().await;
+            return json!({ "ok": false, "error": error.to_string() });
+        }
+        let _ = stdin.shutdown().await;
+    }
+    let output = match child.wait_with_output().await {
+        Ok(output) => output,
+        Err(error) => return json!({ "ok": false, "error": error.to_string() }),
+    };
+    let result = if output.status.success() {
+        match std::fs::read(&file) {
+            Ok(bytes) => {
+                let encoded = base64::engine::general_purpose::STANDARD.encode(bytes);
+                json!({ "ok": true, "audio": format!("data:audio/wav;base64,{encoded}") })
+            }
+            Err(error) => json!({ "ok": false, "error": error.to_string() }),
+        }
+    } else {
+        json!({
+            "ok": false,
+            "error": String::from_utf8_lossy(&output.stderr).trim().to_string(),
+        })
+    };
+    let _ = std::fs::remove_file(&file);
+    result
+}
+
+#[tauri::command]
+async fn speak(
+    app: AppHandle,
+    text: String,
+    voice: String,
+    rate: String,
+    pitch: String,
+) -> serde_json::Value {
     let text = text.chars().take(500).collect::<String>();
     if text.trim().is_empty() || voice == "system" {
         return json!({ "ok": false });
+    }
+    if voice == "piper-huayan" {
+        return speak_piper(&app, &text, &rate).await;
     }
     let millis = SystemTime::now()
         .duration_since(UNIX_EPOCH)
@@ -1260,6 +1348,7 @@ pub fn run() {
             open_models,
             topic,
             speak,
+            has_piper_voice,
             set_zones,
             set_click_through
         ])

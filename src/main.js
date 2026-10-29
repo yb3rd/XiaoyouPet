@@ -1721,9 +1721,12 @@ const modeOptions = [
   { value: "api", label: "API" },
 ]
 
+const piperAvailable = await invoke("has_piper_voice").catch(() => false)
+
 const voiceOptions = [
   { value: "zh-CN-XiaoxiaoNeural", label: "晓晓 · 温暖（女）" },
   { value: "zh-CN-XiaoyiNeural", label: "晓伊 · 二次元（女）" },
+  ...(piperAvailable ? [{ value: "piper-huayan", label: "华颜 · 温柔甜美（离线）" }] : []),
   { value: "ja-JP-NanamiNeural", label: "七海 · 日语（女）" },
   { value: "en-US-AvaMultilingualNeural", label: "Ava · 多语言（女）" },
   { value: "en-US-EmmaMultilingualNeural", label: "Emma · 多语言（女）" },

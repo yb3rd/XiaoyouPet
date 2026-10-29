@@ -109,6 +109,8 @@ music_cache/  ← 在线点歌缓存（运行时生成，已被 .gitignore）
 - 多语言：Ava、Emma、Vivienne、Seraphina、Thalita
 - 系统语音（离线回退）
 
+如果本机 `voices/piper/` 里有 Piper + `zh_CN-huayan-medium` 模型，设置里会多出 **华颜 · 温柔甜美（离线）**。Piper 和音色文件不上传仓库；华颜只支持中文，音调设置对它无效，语速有效。
+
 支持语速和音调。语音只是 TTS 朗读；唱歌模式是「播放原曲 + 对口型/动作」，不是真正的歌声合成。
 
 ## 新闻
