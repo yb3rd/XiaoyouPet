@@ -2093,6 +2093,13 @@ const voiceDropdown = createDropdown(
     localStorage.setItem("pet.voiceName", value)
     voiceOn = true
     localStorage.setItem("pet.voice.v3", "1")
+    if (value === "piper-huayan") {
+      localStorage.setItem("pet.pitch", "+0Hz")
+      pitchDropdown?.setValue("+0Hz")
+      settingsHint.textContent = "华颜是离线音色：音调无效，语速有效"
+    } else {
+      settingsHint.textContent = ""
+    }
     refreshMenu()
   },
 )
@@ -2110,6 +2117,14 @@ const pitchDropdown = createDropdown(
   localStorage.getItem("pet.pitch") || "+0Hz",
   (value) => localStorage.setItem("pet.pitch", value),
 )
+
+if (voiceDropdown.value === "piper-huayan") {
+  if (localStorage.getItem("pet.pitch") !== "+0Hz") {
+    localStorage.setItem("pet.pitch", "+0Hz")
+    pitchDropdown.setValue("+0Hz")
+  }
+  settingsHint.textContent = "华颜是离线音色：音调无效，语速有效"
+}
 
 talkDropdown = createDropdown(ddTalk, talkModeOptions, talkMode, (value) => setTalkMode(value))
 
@@ -2142,6 +2157,9 @@ async function openSettings() {
   settings.scrollTop = 0
   if (!models.length) models = (await invoke("list_models")) || []
   fillModels()
+  if (voiceDropdown.value === "piper-huayan") {
+    settingsHint.textContent = "华颜是离线音色：音调无效，语速有效"
+  }
   void loadAnimationList()
 }
 
