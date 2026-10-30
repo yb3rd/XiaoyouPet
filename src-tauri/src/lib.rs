@@ -6,16 +6,16 @@ use base64::Engine;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use tauri::{
-    menu::{CheckMenuItem, Menu, MenuItem},
+    menu::{Menu, MenuItem},
     tray::TrayIconBuilder,
-    AppHandle, Emitter, Manager, State, WebviewWindow, Wry,
+    AppHandle, Emitter, Manager, State, WebviewWindow,
 };
 use tauri_plugin_dialog::DialogExt;
 use tauri_plugin_global_shortcut::{Code, GlobalShortcutExt, Modifiers, Shortcut, ShortcutState};
 
 struct PetState {
     zones: Mutex<Vec<Zone>>,
-    click_item: Mutex<Option<CheckMenuItem<Wry>>>,
+    click_through: Mutex<bool>,
 }
 
 #[derive(Clone, Deserialize, Default, PartialEq)]
@@ -1063,30 +1063,44 @@ fn set_window_scale(window: WebviewWindow, scale: f64) -> serde_json::Value {
 #[tauri::command]
 fn set_click_through(app: AppHandle, window: WebviewWindow, enabled: bool) {
     let _ = window.set_ignore_cursor_events(enabled);
-    if let Ok(item) = app.state::<PetState>().click_item.lock() {
-        if let Some(item) = item.as_ref() {
-            let _ = item.set_checked(enabled);
-        }
+    if let Ok(mut flag) = app.state::<PetState>().click_through.lock() {
+        *flag = enabled;
     }
 }
 
 fn toggle_click_through(app: &AppHandle) {
     let state = app.state::<PetState>();
     let enabled = {
-        let item = state.click_item.lock().ok();
-        item.and_then(|item| item.as_ref().and_then(|item| item.is_checked().ok()))
-            .map(|checked| !checked)
-            .unwrap_or(true)
+        let current = state.click_through.lock().map(|flag| *flag).unwrap_or(false);
+        !current
     };
-    if let Ok(item) = state.click_item.lock() {
-        if let Some(item) = item.as_ref() {
-            let _ = item.set_checked(enabled);
-        }
+    if let Ok(mut flag) = state.click_through.lock() {
+        *flag = enabled;
     }
     if let Some(window) = app.get_webview_window("main") {
         let _ = window.set_ignore_cursor_events(enabled);
     }
     let _ = app.emit("click-through-changed", enabled);
+}
+
+fn open_pet_settings(app: &AppHandle) {
+    if let Some(window) = app.get_webview_window("main") {
+        #[cfg(windows)]
+        ensure_frameless(&window);
+        let _ = window.set_ignore_cursor_events(false);
+        let _ = window.show();
+        let _ = window.set_focus();
+        let _ = window.emit("open-settings", ());
+    }
+    if let Ok(mut flag) = app.state::<PetState>().click_through.lock() {
+        *flag = false;
+    }
+    let _ = app.emit("click-through-changed", false);
+}
+
+#[tauri::command]
+fn open_settings(app: AppHandle) {
+    open_pet_settings(&app);
 }
 
 #[tauri::command]
@@ -1136,9 +1150,9 @@ fn remove_window_frame(window: &WebviewWindow) {
         RedrawWindow, RDW_ALLCHILDREN, RDW_ERASE, RDW_FRAME, RDW_INVALIDATE, RDW_UPDATENOW,
     };
     use windows_sys::Win32::UI::WindowsAndMessaging::{
-        GetWindowLongW, SetWindowLongW, SetWindowPos, GWL_STYLE, SWP_FRAMECHANGED, SWP_NOMOVE,
-        SWP_NOSIZE, SWP_NOZORDER, WS_CAPTION, WS_MAXIMIZEBOX, WS_MINIMIZEBOX, WS_SYSMENU,
-        WS_THICKFRAME,
+        GetWindowLongW, SetWindowLongW, SetWindowPos, GWL_EXSTYLE, GWL_STYLE, SWP_FRAMECHANGED,
+        SWP_NOMOVE, SWP_NOSIZE, SWP_NOZORDER, WS_CAPTION, WS_EX_APPWINDOW, WS_EX_TOOLWINDOW,
+        WS_MAXIMIZEBOX, WS_MINIMIZEBOX, WS_SYSMENU, WS_THICKFRAME,
     };
 
     let Ok(hwnd) = window.hwnd() else {
@@ -1148,8 +1162,13 @@ fn remove_window_frame(window: &WebviewWindow) {
         let style = GetWindowLongW(hwnd.0 as _, GWL_STYLE);
         let frame_mask =
             (WS_CAPTION | WS_THICKFRAME | WS_MINIMIZEBOX | WS_MAXIMIZEBOX | WS_SYSMENU) as i32;
-        let new_style = style & !frame_mask;
-        SetWindowLongW(hwnd.0 as _, GWL_STYLE, new_style);
+        SetWindowLongW(hwnd.0 as _, GWL_STYLE, style & !frame_mask);
+        let ex_style = GetWindowLongW(hwnd.0 as _, GWL_EXSTYLE);
+        let new_ex_style =
+            (ex_style | WS_EX_TOOLWINDOW as i32) & !(WS_EX_APPWINDOW as i32);
+        if new_ex_style != ex_style {
+            SetWindowLongW(hwnd.0 as _, GWL_EXSTYLE, new_ex_style);
+        }
         SetWindowPos(
             hwnd.0 as _,
             std::ptr::null_mut(),
@@ -1269,7 +1288,7 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .manage(PetState {
             zones: Mutex::new(Vec::new()),
-            click_item: Mutex::new(None),
+            click_through: Mutex::new(false),
         })
         .setup(|app| {
             if let Some(window) = app.get_webview_window("main") {
@@ -1333,22 +1352,15 @@ pub fn run() {
             let _ = std::fs::create_dir_all(music_dir(&handle));
             let _ = std::fs::create_dir_all(memory_dir(&handle));
 
-            let click_item = CheckMenuItem::with_id(
-                app,
-                "click_through",
-                "点击穿透（不挡其他窗口）",
-                true,
-                false,
-                None::<&str>,
-            )?;
+            let settings_item = MenuItem::with_id(app, "settings", "设置", true, None::<&str>)?;
             let quit_item = MenuItem::with_id(app, "quit", "退出", true, None::<&str>)?;
-            let tray_menu = Menu::with_items(app, &[&click_item, &quit_item])?;
+            let tray_menu = Menu::with_items(app, &[&settings_item, &quit_item])?;
             let mut tray = TrayIconBuilder::new()
                 .tooltip("小尤桌宠 v2026.10.29")
                 .menu(&tray_menu)
                 .show_menu_on_left_click(true)
                 .on_menu_event(move |app, event| match event.id.as_ref() {
-                    "click_through" => toggle_click_through(app),
+                    "settings" => open_pet_settings(app),
                     "quit" => app.exit(0),
                     _ => {}
                 });
@@ -1356,9 +1368,6 @@ pub fn run() {
                 tray = tray.icon(icon.clone());
             }
             tray.build(app)?;
-            if let Ok(mut item) = app.state::<PetState>().click_item.lock() {
-                *item = Some(click_item);
-            }
             let shortcut = Shortcut::new(Some(Modifiers::CONTROL | Modifiers::ALT), Code::KeyP);
             if let Err(error) = app.global_shortcut().register(shortcut) {
                 eprintln!("failed to register global shortcut: {error}");
@@ -1382,7 +1391,8 @@ pub fn run() {
             has_piper_voice,
             set_window_scale,
             set_zones,
-            set_click_through
+            set_click_through,
+            open_settings
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -2201,13 +2201,14 @@ function fillModels() {
   settingsHint.textContent = options.length ? "" : "该来源没有可用模型"
 }
 
-async function openSettings() {
+async function openSettings(forceOpen = false) {
   composer.classList.add("hidden")
   menu.classList.add("hidden")
   bubble.classList.add("hidden")
   closeNewsDetail()
   hideChoices()
-  settings.classList.toggle("hidden")
+  if (forceOpen) settings.classList.remove("hidden")
+  else settings.classList.toggle("hidden")
   if (settings.classList.contains("hidden")) return
   scheduleNextTalk()
   settings.scrollTop = 0
@@ -2531,4 +2532,7 @@ void listen("click-through-changed", (event) => {
   localStorage.setItem("pet.clickThrough", event.payload ? "1" : "0")
   refreshMenu()
   refreshClickThrough()
+})
+void listen("open-settings", () => {
+  void openSettings(true)
 })
