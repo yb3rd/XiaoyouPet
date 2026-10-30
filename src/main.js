@@ -47,12 +47,41 @@ let frameTargetZ = 3.75
 let frameBaseZ = 3.75
 const savedViewScale = Number(localStorage.getItem("pet.scale"))
 let viewScale =
-  Number.isFinite(savedViewScale) && savedViewScale >= 0.7 && savedViewScale <= 1.2
+  Number.isFinite(savedViewScale) && savedViewScale >= 0.8 && savedViewScale <= 4.9
     ? savedViewScale
     : 1
+let windowScale = Math.max(1, viewScale)
+let cameraScale = Math.min(1, viewScale)
 let frameLookX = 0
 let frameLookY = 0.9
 let frameCheckAt = 0
+
+function applyCanvasScale() {
+  windowScale = Math.max(1, viewScale)
+  cameraScale = Math.min(1, viewScale)
+  canvas.style.width = `${260 * windowScale}px`
+  canvas.style.height = `${340 * windowScale}px`
+  renderer.setSize(canvas.clientWidth, canvas.clientHeight, false)
+  camera.aspect = canvas.clientWidth / Math.max(1, canvas.clientHeight)
+  camera.updateProjectionMatrix()
+  frameCheckAt = 0
+}
+
+async function applyWindowScale(value) {
+  const requested = Number(value)
+  const safe = Number.isFinite(requested)
+    ? Math.min(4.9, Math.max(0.8, requested))
+    : 1
+  const result = await invoke("set_window_scale", { scale: safe }).catch(() => null)
+  const actual = Number(result?.actual)
+  viewScale = Number.isFinite(actual) ? actual : safe
+  applyCanvasScale()
+  if (result?.ok && Math.abs(actual - safe) > 0.01) {
+    settingsHint.textContent = `屏幕限制：实际 ${Math.round(actual * 100)}%`
+  } else {
+    settingsHint.textContent = `缩放：${Math.round(viewScale * 100)}%`
+  }
+}
 const frameBox = new THREE.Box3()
 const framePos = new THREE.Vector3()
 const frameSize = new THREE.Vector3()
@@ -98,7 +127,7 @@ function updateAutoFrame(time) {
         minDistance,
         frameSize.z * 1.5 + 1.0,
       )
-      frameTargetZ = Math.min(10, distance / viewScale)
+      frameTargetZ = Math.min(10, distance / cameraScale)
     }
   }
   camera.position.x += (frameTargetX - camera.position.x) * 0.08
@@ -163,7 +192,7 @@ async function loadModel(url) {
   frameBaseZ = height * 2.6
   const minY = box.min.y || 0
 
-  const initialZ = Math.max(0.9, (height * 2.4) / viewScale)
+  const initialZ = Math.max(0.9, (height * 2.4) / cameraScale)
   camera.position.set(0, minY + height * 0.58, initialZ)
   camera.lookAt(0, minY + height * 0.58, 0)
   camera.updateProjectionMatrix()
@@ -1777,10 +1806,13 @@ const pitchOptions = [
 ]
 
 const scaleOptions = [
-  { value: "0.8", label: "小" },
-  { value: "1", label: "正常" },
-  { value: "1.12", label: "大" },
-  { value: "1.2", label: "很大" },
+  { value: "0.8", label: "80%" },
+  { value: "1", label: "100%" },
+  { value: "1.5", label: "150%" },
+  { value: "2.1", label: "210%" },
+  { value: "2.7", label: "270%" },
+  { value: "3.5", label: "350%" },
+  { value: "4.9", label: "490%" },
 ]
 
 function closeAllDropdowns(except) {
@@ -2138,11 +2170,8 @@ const pitchDropdown = createDropdown(
 )
 
 const scaleDropdown = createDropdown(ddScale, scaleOptions, String(viewScale), (value) => {
-  const next = Number(value)
-  viewScale = Number.isFinite(next) && next >= 0.7 && next <= 1.2 ? next : 1
-  localStorage.setItem("pet.scale", String(viewScale))
-  frameCheckAt = 0
-  settingsHint.textContent = `缩放：${scaleOptions.find((item) => item.value === value)?.label || "正常"}`
+  localStorage.setItem("pet.scale", value)
+  void applyWindowScale(value)
 })
 
 if (voiceDropdown.value === "piper-huayan") {
@@ -2493,6 +2522,7 @@ animate()
 void loadAnimationList()
 void loadModelFiles()
 void ensureDefaultModel()
+void applyWindowScale(viewScale)
 refreshClickThrough()
 if (localStorage.getItem("pet.clickThrough") === "1") {
   void invoke("set_click_through", { enabled: true })

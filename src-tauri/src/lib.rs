@@ -1030,6 +1030,37 @@ async fn speak(
 }
 
 #[tauri::command]
+fn set_window_scale(window: WebviewWindow, scale: f64) -> serde_json::Value {
+    let requested = scale.clamp(0.8, 4.9);
+    let Ok(Some(monitor)) = window.current_monitor() else {
+        return json!({ "ok": false });
+    };
+    let dpi = monitor.scale_factor();
+    let size = monitor.size();
+    let logical_width = size.width as f64 / dpi;
+    let logical_height = size.height as f64 / dpi;
+    let window_scale = if requested <= 1.0 {
+        1.0
+    } else {
+        let max_width = ((logical_width - 40.0) / 300.0).max(1.0);
+        let max_height = ((logical_height - 76.0) / 340.0).max(1.0);
+        requested.min(max_width).min(max_height)
+    };
+    let width = 300.0 * window_scale;
+    let height = 340.0 * window_scale;
+    let _ = window.set_size(tauri::LogicalSize::new(width, height));
+    let x = (logical_width - width - 20.0).max(0.0);
+    let y = (logical_height - height - 56.0).max(0.0);
+    let _ = window.set_position(tauri::LogicalPosition::new(x, y));
+    json!({
+        "ok": true,
+        "requested": requested,
+        "actual": if requested < 1.0 { requested } else { window_scale },
+        "windowScale": window_scale,
+    })
+}
+
+#[tauri::command]
 fn set_click_through(app: AppHandle, window: WebviewWindow, enabled: bool) {
     let _ = window.set_ignore_cursor_events(enabled);
     if let Ok(item) = app.state::<PetState>().click_item.lock() {
@@ -1349,6 +1380,7 @@ pub fn run() {
             topic,
             speak,
             has_piper_voice,
+            set_window_scale,
             set_zones,
             set_click_through
         ])
