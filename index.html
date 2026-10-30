@@ -19,7 +19,8 @@
       <button id="composer-close" title="关闭">✕</button>
     </div>
 
-    <div id="settings" class="settings hidden">      <button id="settings-close" class="settings-close" title="关闭">✕</button>
+    <div id="settings" class="settings hidden">
+      <button id="settings-close" class="settings-close" title="关闭">✕</button>
       <div class="settings-title">设置 <span class="build">v2026.10.29</span></div>
       <label>
         <span>来源</span>
@@ -33,14 +34,26 @@
         <span>声音</span>
         <div class="dd" id="dd-voice"></div>
       </label>
-      <label>
-        <span>语速</span>
-        <div class="dd" id="dd-rate"></div>
-      </label>
-      <label>
-        <span>音调</span>
-        <div class="dd" id="dd-pitch"></div>
-      </label>
+      <div class="settings-pair">
+        <label>
+          <span>语速</span>
+          <div class="dd" id="dd-rate"></div>
+        </label>
+        <label>
+          <span>音调</span>
+          <div class="dd" id="dd-pitch"></div>
+        </label>
+      </div>
+      <div class="settings-pair">
+        <label>
+          <span>缩放</span>
+          <div class="dd" id="dd-scale"></div>
+        </label>
+        <label>
+          <span>点击穿透</span>
+          <button id="settings-clickThrough" class="settings-toggle" type="button">关闭</button>
+        </label>
+      </div>
       <label>
         <span>主动聊天</span>
         <div class="dd" id="dd-talk"></div>
@@ -61,27 +74,29 @@
     </div>
 
     <div id="menu" class="context-menu hidden">
-      <button class="menu-close" data-action="closeMenu" title="关闭">✕</button>
-      <button data-action="compose">💬 输入消息</button>
-      <button data-action="song">🎵 点歌</button>
-      <button data-action="clickThrough">🖱 点击穿透：关</button>
-      <button data-action="talk">💬 主动聊天：经常</button>
-      <button data-action="voice">📢 朗读上一条</button>
-      <button data-action="voiceNext">📢 朗读下一条</button>
-      <button data-action="mute">🔇 静音</button>
-      <div class="menu-group">
-        <button data-action="switchModel">🧍 换模型</button>
-        <div id="model-list" class="menu-sub hidden"></div>
+      <div class="menu-scroll">
+        <button class="menu-close" data-action="closeMenu" title="关闭">✕</button>
+        <button data-action="compose">💬 输入消息</button>
+        <button data-action="song">🎵 点歌</button>
+        <button data-action="talk">💬 主动聊天：经常</button>
+        <button data-action="voice">📢 朗读上一条</button>
+        <button data-action="voiceNext">📢 朗读下一条</button>
+        <button data-action="mute">🔇 静音</button>
+        <div class="menu-group">
+          <button data-action="switchModel">🧍 换模型</button>
+          <div id="model-list" class="menu-sub hidden"></div>
+        </div>
+        <div class="menu-group">
+          <button data-action="switchAnim">🎬 动作</button>
+          <div id="anim-list" class="menu-sub hidden"></div>
+        </div>
+        <button data-action="dance">💃 跳舞</button>
+        <button data-action="sing">🎤 唱歌</button>
       </div>
-      <div class="menu-group">
-        <button data-action="switchAnim">🎬 动作</button>
-        <div id="anim-list" class="menu-sub hidden"></div>
+      <div class="menu-footer">
+        <button data-action="settings">⚙ 设置</button>
+        <button data-action="quit">✕ 退出</button>
       </div>
-      <button data-action="dance">💃 跳舞</button>
-      <button data-action="sing">🎤 唱歌</button>
-      <div class="sep"></div>
-      <button data-action="settings">⚙ 设置</button>
-      <button data-action="quit">✕ 退出</button>
     </div>
 
     <script type="module" src="/src/main.js"></script>

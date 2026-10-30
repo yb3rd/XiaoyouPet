@@ -21,8 +21,11 @@ const ddVoice = document.getElementById("dd-voice")
 const ddRate = document.getElementById("dd-rate")
 const ddPitch = document.getElementById("dd-pitch")
 const ddTalk = document.getElementById("dd-talk")
+const ddScale = document.getElementById("dd-scale")
+const settingsClickThrough = document.getElementById("settings-clickThrough")
 const settingsHint = document.getElementById("settings-hint")
 const menu = document.getElementById("menu")
+const menuScroll = document.querySelector("#menu .menu-scroll")
 const menuModelList = document.getElementById("model-list")
 const menuAnimList = document.getElementById("anim-list")
 const newsMore = document.getElementById("news-more")
@@ -42,6 +45,11 @@ let frameTargetX = 0
 let frameTargetY = 0.9
 let frameTargetZ = 3.75
 let frameBaseZ = 3.75
+const savedViewScale = Number(localStorage.getItem("pet.scale"))
+let viewScale =
+  Number.isFinite(savedViewScale) && savedViewScale >= 0.7 && savedViewScale <= 1.2
+    ? savedViewScale
+    : 1
 let frameLookX = 0
 let frameLookY = 0.9
 let frameCheckAt = 0
@@ -84,10 +92,13 @@ function updateAutoFrame(time) {
       frameTargetX = frameCenter.x
       frameTargetY = frameCenter.y
       const minDistance = Math.max(frameBaseZ, vrmHeight * 1.75)
-      frameTargetZ = Math.min(
-        10,
-        Math.max(vertical, horizontal, minDistance, frameSize.z * 1.5 + 1.0),
+      const distance = Math.max(
+        vertical,
+        horizontal,
+        minDistance,
+        frameSize.z * 1.5 + 1.0,
       )
+      frameTargetZ = Math.min(10, distance / viewScale)
     }
   }
   camera.position.x += (frameTargetX - camera.position.x) * 0.08
@@ -152,12 +163,13 @@ async function loadModel(url) {
   frameBaseZ = height * 2.6
   const minY = box.min.y || 0
 
-  camera.position.set(0, minY + height * 0.58, height * 2.4)
+  const initialZ = Math.max(0.9, (height * 2.4) / viewScale)
+  camera.position.set(0, minY + height * 0.58, initialZ)
   camera.lookAt(0, minY + height * 0.58, 0)
   camera.updateProjectionMatrix()
   frameTargetX = 0
   frameTargetY = minY + height * 0.58
-  frameTargetZ = height * 2.4
+  frameTargetZ = initialZ
   frameLookX = 0
   frameLookY = frameTargetY
   frameCheckAt = 0
@@ -1764,6 +1776,13 @@ const pitchOptions = [
   { value: "+10Hz", label: "很高（偏二次元）" },
 ]
 
+const scaleOptions = [
+  { value: "0.8", label: "小" },
+  { value: "1", label: "正常" },
+  { value: "1.12", label: "大" },
+  { value: "1.2", label: "很大" },
+]
+
 function closeAllDropdowns(except) {
   document.querySelectorAll(".dd-list").forEach((element) => {
     if (element !== except) element.classList.add("hidden")
@@ -2118,6 +2137,14 @@ const pitchDropdown = createDropdown(
   (value) => localStorage.setItem("pet.pitch", value),
 )
 
+const scaleDropdown = createDropdown(ddScale, scaleOptions, String(viewScale), (value) => {
+  const next = Number(value)
+  viewScale = Number.isFinite(next) && next >= 0.7 && next <= 1.2 ? next : 1
+  localStorage.setItem("pet.scale", String(viewScale))
+  frameCheckAt = 0
+  settingsHint.textContent = `缩放：${scaleOptions.find((item) => item.value === value)?.label || "正常"}`
+})
+
 if (voiceDropdown.value === "piper-huayan") {
   if (localStorage.getItem("pet.pitch") !== "+0Hz") {
     localStorage.setItem("pet.pitch", "+0Hz")
@@ -2163,14 +2190,29 @@ async function openSettings() {
   void loadAnimationList()
 }
 
+function refreshClickThrough() {
+  if (!settingsClickThrough) return
+  const enabled = localStorage.getItem("pet.clickThrough") === "1"
+  settingsClickThrough.textContent = enabled ? "开启" : "关闭"
+  settingsClickThrough.classList.toggle("on", enabled)
+}
+
+function toggleClickThrough() {
+  const next = localStorage.getItem("pet.clickThrough") !== "1"
+  localStorage.setItem("pet.clickThrough", next ? "1" : "0")
+  void invoke("set_click_through", { enabled: next })
+  refreshMenu()
+  refreshClickThrough()
+  settingsHint.textContent = next
+    ? "点击穿透已开启，按 Ctrl+Alt+P 关闭"
+    : "点击穿透已关闭"
+  showBubble(next ? "已开启点击穿透，Ctrl+Alt+P 或托盘菜单关闭" : "已关闭点击穿透")
+}
+
 function refreshMenu() {
   const muteItem = menu.querySelector('[data-action="mute"]')
   if (muteItem) muteItem.textContent = voiceOn ? "🔇 静音" : "🔊 开启朗读"
-  const clickItem = menu.querySelector('[data-action="clickThrough"]')
-  if (clickItem) {
-    clickItem.textContent =
-      localStorage.getItem("pet.clickThrough") === "1" ? "🖱 点击穿透：开" : "🖱 点击穿透：关"
-  }
+  refreshClickThrough()
   const talkItem = menu.querySelector('[data-action="talk"]')
   if (talkItem) talkItem.textContent = `💬 主动聊天：${talkMode === "off" ? "关闭" : talkModeLabel(talkMode).replace(/（.*）/, "")}`
 }
@@ -2189,7 +2231,7 @@ window.addEventListener("contextmenu", (event) => {
   menuModelList?.classList.add("hidden")
   menuAnimList?.classList.add("hidden")
   menu.classList.remove("hidden")
-  menu.scrollTop = 0
+  menuScroll.scrollTop = 0
   const width = menu.offsetWidth
   const height = menu.offsetHeight
   menu.style.left = `${Math.max(6, Math.min(event.clientX, window.innerWidth - width - 6))}px`
@@ -2218,7 +2260,7 @@ menu.addEventListener("click", (event) => {
       menuAnimList?.classList.toggle("hidden")
     }
     if (!menuModelList?.classList.contains("hidden") || !menuAnimList?.classList.contains("hidden")) {
-      menu.scrollTop = Math.max(0, button.offsetTop - 30)
+      menuScroll.scrollTop = Math.max(0, button.offsetTop - 30)
     }
     const rect = menu.getBoundingClientRect()
     const overflow = rect.bottom - window.innerHeight + 6
@@ -2232,13 +2274,7 @@ menu.addEventListener("click", (event) => {
   else if (action === "voiceNext") void speakNext()
   else if (action === "mute") toggleVoice()
   else if (action === "settings") void openSettings()
-  else if (action === "clickThrough") {
-    const next = localStorage.getItem("pet.clickThrough") !== "1"
-    localStorage.setItem("pet.clickThrough", next ? "1" : "0")
-    void invoke("set_click_through", { enabled: next })
-    refreshMenu()
-    showBubble(next ? "已开启点击穿透，Ctrl+Alt+P 或托盘菜单关闭" : "已关闭点击穿透")
-  }
+  else if (action === "clickThrough") toggleClickThrough()
   else if (action === "talk") cycleTalkMode()
   else if (action === "dance") void startDance()
   else if (action === "sing") void startSing()
@@ -2259,6 +2295,10 @@ document.getElementById("composer-close").addEventListener("click", () => compos
 document.getElementById("settings-close").addEventListener("click", () => settings.classList.add("hidden"))
 document.getElementById("settings-models").addEventListener("click", () => void invoke("open_models"))
 document.getElementById("settings-importAnim").addEventListener("click", () => void importAnimation())
+settingsClickThrough.addEventListener("click", (event) => {
+  event.stopPropagation()
+  toggleClickThrough()
+})
 document.getElementById("news-close").addEventListener("click", closeNewsDetail)
 
 window.addEventListener("keydown", (event) => {
@@ -2453,10 +2493,12 @@ animate()
 void loadAnimationList()
 void loadModelFiles()
 void ensureDefaultModel()
+refreshClickThrough()
 if (localStorage.getItem("pet.clickThrough") === "1") {
   void invoke("set_click_through", { enabled: true })
 }
 void listen("click-through-changed", (event) => {
   localStorage.setItem("pet.clickThrough", event.payload ? "1" : "0")
   refreshMenu()
+  refreshClickThrough()
 })
